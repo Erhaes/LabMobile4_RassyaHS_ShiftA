@@ -20,9 +20,9 @@ class UserInfo {
     final SharedPreferences pref = await SharedPreferences.getInstance();
     return pref.getInt("userID");
   }
+
   Future logout() async {
     final SharedPreferences pref = await SharedPreferences.getInstance();
     pref.clear();
   }
-  
 }

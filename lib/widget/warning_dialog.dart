@@ -8,7 +8,7 @@ class Consts {
 }
 
 class WarningDialog extends StatelessWidget {
-  final String? description; 
+  final String? description;
   final VoidCallback? okClick;
 
   const WarningDialog({Key? key, this.description, this.okClick})
@@ -68,7 +68,6 @@ class WarningDialog extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop(); // To close the dialog
-                okClick!();
               },
               child: const Text("OK"),
             ),
