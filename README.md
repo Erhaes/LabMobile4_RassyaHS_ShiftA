@@ -108,11 +108,168 @@ class ApiUrl {
 
 ### Login
 1. Halaman login = login_page.dart
+pada halaman login terdapat 2 TextField dan 1 Button untuk login serta sebuah widget yang mengarahkan ke halaman registrasi.
+```dart
+class _LoginPageState extends State<LoginPage> {
+  final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
+  final _emailTextboxController = TextEditingController();
+  final _passwordTextboxController = TextEditingController();
 
-![login](login.jpg)
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Login Rassya'),
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                _emailTextField(),
+                _passwordTextField(),
+                _buttonLogin(),
+                const SizedBox(
+                  height: 30,
+                ),
+                _menuRegistrasi()
+```
+2. Login berhasil dan Gagal = login_page->login_bloc.dart
+Jika menekan button untuk login maka akan memanggil method submit yang didalamnya mengambil nilai inputan dari TextField yang ada dan mengirimkan ke logi_bloc.dart. Jika berhasil terkirim dan sesuai database maka akan langsung diarahkan ke page List Produk, sedangkan bila gagal atau error maka akan menampilkan popup ShowDialog berupa WarningDialog.
+```dart
+Widget _buttonLogin() {
+    return ElevatedButton(
+        child: const Text("Login"),
+        onPressed: () {
+          var validate = _formKey.currentState!.validate();
+          if (validate) {
+            if (!_isLoading) _submit();
+          }
+        });
+  }
 
-### produk_page.dart
-![List Produk](list_produk.jpg)
+  void _submit() {
+    _formKey.currentState!.save();
+    setState(() {
+      _isLoading = true;
+    });
+    LoginBloc.login(
+            email: _emailTextboxController.text,
+            password: _passwordTextboxController.text)
+        .then((value) async {
+      if (value.code == 200) {
+        await UserInfo().setToken(value.token.toString());
+        await UserInfo().setUserID(int.parse(value.userID.toString()));
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(builder: (context) => const ProdukPage()));
+      } else {
+        showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) => const WarningDialog(
+                  description: "Login gagal, silahkan coba lagi",
+                ));
+      }
+    }, onError: (error) {
+      print(error);
+      showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) => const WarningDialog(
+                description: "Login gagal, silahkan coba lagi",
+              ));
+    });
+    setState(() {
+      _isLoading = false;
+    });
+  }
+```
+
+di login_bloc.dart data dikirim ke api dan dicocokkan dengan database.
+```dart
+class LoginBloc {
+  static Future<Login> login({String? email, String? password}) async {
+    String apiUrl = ApiUrl.login;
+    var body = {"email": email, "password": password};
+    var response = await Api().post(apiUrl, body);
+    var jsonObj = json.decode(response.body);
+    return Login.fromJson(jsonObj);
+  }
+}
+```
+![login gagal](gambar/login-gagal.jpg)
+
+### Produk
+1. List Produk = produk_page.dart
+Pada 'produk_page.dart' terdapat sebuah getter bernama 'GetProduks' yang mengambil nilai yang diambil oleh 'produk_bloc.dart' dari database mebggunakan api.
+produk_page
+```dart
+body: FutureBuilder<List>(
+        future: ProdukBloc.getProduks(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) print(snapshot.error);
+          return snapshot.hasData
+              ? ListProduk(
+                  list: snapshot.data,
+                )
+              : const Center(
+                  child: CircularProgressIndicator(),
+                );
+        },
+      ),
+```
+
+produk_bloc
+```dart
+static Future<List<Produk>> getProduks() async {
+    String apiUrl = ApiUrl.listProduk;
+    var response = await Api().get(apiUrl);
+    var jsonObj = json.decode(response.body);
+    List<dynamic> listProduk = (jsonObj as Map<String, dynamic>)['data'];
+    List<Produk> produks = [];
+    for (int i = 0; i < listProduk.length; i++) {
+      produks.add(Produk.fromJson(listProduk[i]));
+    }
+    return produks;
+  }
+```
+Hasil value database yang diambil kemudian dicek oleh itemcount. Apabila != 0 dan >1, maka akan menampilkan widget card yang berisi list produk dan harganya.
+```dart
+Widget build(BuildContext context) {
+    return ListView.builder(
+        itemCount: list == null ? 0 : list!.length,
+        itemBuilder: (context, i) {
+          return ItemProduk(
+            produk: list![i],
+          );
+        });
+  }
+```
+
+```dart
+Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => ProdukDetail(
+                      produk: produk,
+                    )));
+      },
+      child: Card(
+        child: ListTile(
+          title: Text(produk.namaProduk!),
+          subtitle: Text(produk.hargaProduk.toString()),
+        ),
+      ),
+    );
+  }
+```
+![List Produk](gambar/list-produk.jpg)
 
 ### produk_detail.dart
 ![Detail Produk](detail_produk.jpg)
