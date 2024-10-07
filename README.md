@@ -203,7 +203,7 @@ class LoginBloc {
 ![login gagal](gambar/login-gagal.jpg)
 
 ### Produk
-1. List Produk = produk_page.dart
+1. List Produk = produk_bloc.dart->produk_page.dart
 Pada 'produk_page.dart' terdapat sebuah getter bernama 'GetProduks' yang mengambil nilai yang diambil oleh 'produk_bloc.dart' dari database mebggunakan api.
 produk_page
 ```dart
@@ -236,7 +236,7 @@ static Future<List<Produk>> getProduks() async {
     return produks;
   }
 ```
-Hasil value database yang diambil kemudian dicek oleh itemcount. Apabila != 0 dan >1, maka akan menampilkan widget card yang berisi list produk dan harganya.
+Hasil value database yang diambil kemudian dicek oleh itemcount. Apabila != 0 dan >1, maka akan menampilkan widget card yang berisi list produk dan harganya. Dan dari card tersebut bila dipencet akan dinavigasi ke halaman detail produk.
 ```dart
 Widget build(BuildContext context) {
     return ListView.builder(
@@ -270,8 +270,109 @@ Widget build(BuildContext context) {
   }
 ```
 ![List Produk](gambar/list-produk.jpg)
+![List Produk Kosong](gambar/list-produk-kosong.jpg)
 
-### produk_detail.dart
+### Tambah Produk
+1. Tambah Produk = produk_form.dart->produk_bloc.dart
+Halaman Tambah produk merupakan hasil percabangan dari produk_form.dart apabila widget tidak membawa value.
+```dart
+isUpdate() {
+    if (widget.produk != null) {
+      setState(() {
+        judul = "UBAH PRODUK Rassya";
+        tombolSubmit = "UBAH";
+        _kodeProdukTextboxController.text = widget.produk!.kodeProduk!;
+        _namaProdukTextboxController.text = widget.produk!.namaProduk!;
+        _hargaProdukTextboxController.text = widget.produk!.hargaProduk.toString();
+      });
+    } else {
+      judul = "TAMBAH PRODUK Rassya";
+      tombolSubmit = "SIMPAN";
+    }
+  }
+```
+Halaman tambah produk terdiri atas 3 textfield dan 1 button.
+```dart
+Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(judul)),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                _kodeProdukTextField(),
+                _namaProdukTextField(),
+                _hargaProdukTextField(),
+                _buttonSubmit()
+              ],
+            ),
+          ),
+```
+Jika menekan button submit dan seperti yang kita ketahui dari widget sebelumnya tidak membawa nilai maka akan memanggil method simpan. Method simpan mengambil 3 value dari textfield dan harganya diubah ke string. kemudian dikirimkan ke produk_bloc.dart dan dikirm ke database melalui restful api dengan method addProduk.
+```dart
+Widget _buttonSubmit() {
+    return OutlinedButton(
+        child: Text(tombolSubmit),
+        onPressed: () {
+          var validate = _formKey.currentState!.validate();
+          if (validate) {
+            if (!_isLoading) {
+              if (widget.produk != null) {
+                //kondisi update produk
+                ubah();
+              } else {
+                //kondisi tambah produk
+                simpan();
+              }
+            }
+          }
+        });
+  }
+
+  simpan() {
+    setState(() {
+      _isLoading = true;
+    });
+    Produk createProduk = Produk(id: null);
+    createProduk.kodeProduk = _kodeProdukTextboxController.text;
+    createProduk.namaProduk = _namaProdukTextboxController.text;
+    createProduk.hargaProduk = int.parse(_hargaProdukTextboxController.text);
+    ProdukBloc.addProduk(produk: createProduk).then((value) {
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: (BuildContext context) => const ProdukPage()));
+    }, onError: (error) {
+      showDialog(
+          context: context,
+          builder: (BuildContext context) => const WarningDialog(
+                description: "Simpan gagal, silahkan coba lagi",
+              ));
+    });
+    setState(() {
+      _isLoading = false;
+    });
+  }
+```
+
+Pengiriman data ke restful api menggunakan method addProduk
+```dart
+static Future addProduk({Produk? produk}) async {
+    String apiUrl = ApiUrl.createProduk;
+    var body = {
+      "kode_produk": produk!.kodeProduk,
+      "nama_produk": produk.namaProduk,
+      "harga": produk.hargaProduk.toString()
+    };
+    var response = await Api().post(apiUrl, body);
+    var jsonObj = json.decode(response.body);
+    return jsonObj['status'];
+  }
+```
+### Detail Produk
+1. Detail Produk
+Halaman detail produk muncul ketika memencet card pada ProdukPage.
 ![Detail Produk](detail_produk.jpg)
 
 ### produk_form.dart

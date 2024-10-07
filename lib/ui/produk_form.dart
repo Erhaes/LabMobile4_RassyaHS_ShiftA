@@ -36,8 +36,7 @@ class _ProdukFormState extends State<ProdukForm> {
         tombolSubmit = "UBAH";
         _kodeProdukTextboxController.text = widget.produk!.kodeProduk!;
         _namaProdukTextboxController.text = widget.produk!.namaProduk!;
-        _hargaProdukTextboxController.text =
-            widget.produk!.hargaProduk.toString();
+        _hargaProdukTextboxController.text = widget.produk!.hargaProduk.toString();
       });
     } else {
       judul = "TAMBAH PRODUK Rassya";
@@ -122,7 +121,7 @@ class _ProdukFormState extends State<ProdukForm> {
           if (validate) {
             if (!_isLoading) {
               if (widget.produk != null) {
-//kondisi update produk
+                //kondisi update produk
                 ubah();
               } else {
                 //kondisi tambah produk
